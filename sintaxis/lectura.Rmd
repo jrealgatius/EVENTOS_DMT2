@@ -12,8 +12,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 rm(list=ls())
-memory.size(max=4000)
-
 
 # LECTURA DE DADES --------------------------
 
@@ -157,11 +155,11 @@ dades_dt<- dades_dt %>% mutate(data_sortida=20171231)
 
 # 9 Parametres  --------------
 
-```{r}
-conductor_variables<-"variables_eventos.xls"
+```{r parametres}
 
+conductor_variables<-here::here("variables_eventos.xls")
 
-llista_events<-extreure.variables("events",taulavariables = "variables_eventos.xls")
+llista_events<-extreure.variables("events",taulavariables = conductor_variables)
 
 ```
 
@@ -169,6 +167,7 @@ llista_events<-extreure.variables("events",taulavariables = "variables_eventos.x
 # 10 Calculs ----------------
 
 Genera dades_surv
+
 ```{r calculs}
 dades_surv<-map(llista_events,~generar_Surv(dt=dades_dt,event=.,dtindex = "dtindex",dtsortida="data_sortida")) %>% 
   as.data.frame()
