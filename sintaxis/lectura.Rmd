@@ -48,10 +48,16 @@ BD_CIPS<-read.spss(input_dades,to.data.frame = T) %>% as_tibble()
 
 ```{r}
 dt_cataleg<-"dades" %>% here::here("catalogo_codigos.xls") %>% read_excel(sheet = "ECV_EXITUS") %>% netejar.noms.variables()
+
 EVENTOS_CV<-"dades" %>% here::here("EVENTOS_CARDIOVASCULARES.xls") %>% read_excel() %>% netejar.noms.variables()
 EVENTOS_CV_EXIT<-"dades" %>% here::here("EVENTOS_CARDIOVASCULARES_EXITUS.xls") %>% read_excel() %>% netejar.noms.variables()
 EVENTOS_EXIT_TOTAL<-"dades" %>% here::here("EXITUS_todos.xls") %>% read_excel() %>% netejar.noms.variables()
 EVENTOS_CV_PROC<-"dades" %>% here::here("EVENTOS_CARDIOVASCULARES_PROCEDIM.xls") %>% read_excel() %>% netejar.noms.variables()
+
+# ULTIMA VERSIÓ D'EVENTS CV / exitusCV
+EVENTOS_ULTIMA_VERSION<-"dades" %>% here::here("CAR_EVENTOS_CARDIOVASCULARES_EXITUS_ULTIMA_VERSION.xls") %>% read_excel() %>% netejar.noms.variables()
+EXITUSCV_ULTIMA_VERSION<-EVENTOS_ULTIMA_VERSION %>% filter(Classe_alta_desc=="EXITUS")
+
 
 ```
 
@@ -60,7 +66,9 @@ EVENTOS_CV_PROC<-"dades" %>% here::here("EVENTOS_CARDIOVASCULARES_PROCEDIM.xls")
 
 ```{r fusio}
 
-EVENTOS_TOTAL<-EVENTOS_CV %>% rbind(EVENTOS_CV_EXIT) %>% rbind(EVENTOS_EXIT_TOTAL)
+# Afegeixo events de ultima versió
+
+EVENTOS_TOTAL<-EVENTOS_CV %>% rbind(EVENTOS_CV_EXIT) %>% rbind(EVENTOS_EXIT_TOTAL) %>% rbind(EVENTOS_ULTIMA_VERSION)
 
 # Reformat procediments_CV
 EVENTOS_CV_PROC<-EVENTOS_CV_PROC %>% rename(Diagnstic_codi=Procediment_codi,Diagnstic_desc=Procediment_desc)
@@ -109,20 +117,23 @@ rm(list=c("dt_agregada2","dt_agregada3","dt_agregada4"))
 
 ```{r agregar_font}
 
+# En mortalitat CV afegir actualització Exitus CV: EXITUSCV_ULTIMA_VERSION
+
 # Mortalitat event CV ----------------
-historic_eventos_MCV<-EVENTOS_CV_EXIT %>% mutate (idp=str_sub(CIP_14d,1,13),data_MCV=data_convert_UTC(Data_ingres)) %>% 
+historic_eventos_MCV<-EVENTOS_CV_EXIT %>%  rbind(EXITUSCV_ULTIMA_VERSION) %>% mutate (idp=str_sub(CIP_14d,1,13),data_MCV=data_convert_UTC(Data_ingres)) %>% 
   select(idp,cod_MCV=Diagnstic_codi,data_MCV)
 # Join 
 idp_MCV<-IDS_CIPS %>% left_join(historic_eventos_MCV,by="idp")
 
 # Mortalitat global ----------------
-historic_eventos_exitus<-EVENTOS_EXIT_TOTAL %>% mutate (idp=str_sub(CIP_14d,1,13),data_exitus=data_convert_UTC(Data_ingres)) %>% 
+historic_eventos_exitus<-EVENTOS_EXIT_TOTAL %>%  rbind(EXITUSCV_ULTIMA_VERSION) %>% mutate (idp=str_sub(CIP_14d,1,13),data_exitus=data_convert_UTC(Data_ingres)) %>% 
   select(idp,cod_exitus=Diagnstic_codi,data_exitus)
 # Join 
 idp_MCV<-idp_MCV %>% left_join(historic_eventos_exitus,by="idp")
 
 # Eventos CV ----------------
-historic_CV<-EVENTOS_CV %>% rbind(EVENTOS_CV_EXIT) %>% rbind(EVENTOS_CV_PROC) %>% mutate (idp=str_sub(CIP_14d,1,13),data1_CV=data_convert_UTC(Data_ingres)) %>%
+historic_CV<-EVENTOS_CV %>% rbind(EVENTOS_CV_EXIT) %>% rbind(EVENTOS_CV_PROC) %>% rbind(EXITUSCV_ULTIMA_VERSION) %>% 
+  mutate (idp=str_sub(CIP_14d,1,13),data1_CV=data_convert_UTC(Data_ingres)) %>%
   select(idp,cod_CV1=Diagnstic_codi,data1_CV)
 # Join 
 
@@ -195,6 +206,19 @@ taula<-descrTable(formula,data=dades_dt, show.p.overall = F)
 
 
 export2md(taula)
+
+names(dades_dt)
+
+library(haven)
+
+write_sav(dades_dt,"dades_dm2_n952.sav")
+
+# write_dta(dades_dt,"dades_dm2_n952.dta")
+
+saveRDS(dades_dt,"dades_dm2_n952.Rds")
+
+
+
 
 ```
 
